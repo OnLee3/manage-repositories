@@ -1,35 +1,41 @@
+#!/bin/bash
+
 function get_repositories() {
-    gh repo list --limit 100 --json nameWithOwner | jq -r '.[] | .nameWithOwner'
+    gh repo list --limit 100 --json nameWithOwner,isPrivate | jq -r '.[] | "\(.nameWithOwner) \(.isPrivate)"'
 }
 
-REPOSITORIES=($(get_repositories))
+REPOSITORIES=()
+while read -r repo is_private; do
+    local visibility
+    if [[ "$is_private" == "true" ]]; then
+        visibility="private"
+    else
+        visibility="public"
+    fi
+    REPOSITORIES+=("$repo" "$visibility")
+done < <(get_repositories)
+
+declare -A visibility_map=(
+    [true]="private"
+    [false]="public"
+)
 
 function select_repositories() {
     local selected_repositories=()
     local index=1
 
-    declare -A visibility_map=(
-        ["public"]="public "
-        ["private"]="private"
-    )
-
-    sorted_repositories=($(printf '%s\n' "${REPOSITORIES[@]}" | sort -k 2))
-    
     echo "Select repositories to manage (Enter the numbers, separated by spaces):"
-    for repo in "${sorted_repositories[@]}"; do
-        is_private="$(gh repo view --json isPrivate "$repo" | jq -r '.isPrivate')"
-        if [[ $is_private == "true" ]]; then
-            visibility_string="private"
-        else
-            visibility_string="public"
-        fi
-        echo "[$index] $visibility_string $repo"
+    for ((i=0; i<${#REPOSITORIES[@]}; i+=2)); do
+        repo="${REPOSITORIES[$i]}"
+        visibility="${REPOSITORIES[$((i+1))]}"
+        printf "[%2d] %-7s %s\n" $index "$visibility" "$repo"
         index=$((index + 1))
     done
 
     read -ra selected_indexes
     for index in "${selected_indexes[@]}"; do
-        selected_repositories+=("${sorted_repositories[$((index - 1))]}")
+        repo="${REPOSITORIES[$((2*index-2))]}"
+        selected_repositories+=("$repo")
     done
 
     echo "Selected repositories:"
