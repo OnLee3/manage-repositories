@@ -11,9 +11,10 @@ This is a command-line tool that allows you to manage your GitHub repositories i
 
 1.  Clone this repository and navigate to the project directory in your terminal.
 2.  Run the command `./manage-repositories.sh`.
-3.  Select the repositories you want to manage by entering their numbers.
-4.  Choose the action you want to perform: delete repositories, make repositories public, or make repositories private.
-5.  Follow the prompts to complete the selected action.
+3.  The repositories will be listed in ascending order of visibility, with private repositories first.
+4.  Select the repositories you want to manage by entering their numbers.
+5.  Choose the action you want to perform: delete repositories, make repositories public, or make repositories private.
+6.  Follow the prompts to complete the selected action.
 
 ## License
 
