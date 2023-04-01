@@ -1,41 +1,29 @@
 #!/bin/bash
 
-function get_repositories() {
-    gh repo list --limit 100 --json nameWithOwner,isPrivate | jq -r '.[] | "\(.nameWithOwner) \(.isPrivate)"' | sort -k2,2
+get_repositories() {
+    gh repo list --limit 100 --json nameWithOwner,isPrivate \
+        | jq -r '.[] | "\(.nameWithOwner) \(.isPrivate)"' \
+        | sort -k2,2
 }
 
-REPOSITORIES=()
-while read -r repo is_private; do
-    local visibility
-    if [[ "$is_private" == "true" ]]; then
-        visibility="private"
-    else
-        visibility="public"
-    fi
-    REPOSITORIES+=("$repo" "$visibility")
-done < <(get_repositories)
-
-declare -A visibility_map=(
-    [true]="private"
-    [false]="public"
-)
-
-function select_repositories() {
+select_repositories() {
     local selected_repositories=()
     local index=1
 
     echo "Select repositories to manage (Enter the numbers, separated by spaces):"
-    for ((i=0; i<${#REPOSITORIES[@]}; i+=2)); do
-        repo="${REPOSITORIES[$i]}"
-        visibility="${REPOSITORIES[$((i+1))]}"
+    while read -r repo is_private; do
+        local visibility="public"
+        if [[ "$is_private" == "true" ]]; then
+            visibility="private"
+        fi
         printf "[%2d] %-7s %s\n" $index "$visibility" "$repo"
+        REPOSITORIES+=("$repo")
         index=$((index + 1))
-    done
+    done < <(get_repositories)
 
     read -ra selected_indexes
     for index in "${selected_indexes[@]}"; do
-        repo="${REPOSITORIES[$((2*index-2))]}"
-        selected_repositories+=("$repo")
+        selected_repositories+=("${REPOSITORIES[$index-1]}")
     done
 
     echo "Selected repositories:"
@@ -45,9 +33,7 @@ function select_repositories() {
     REPOSITORIES=("${selected_repositories[@]}")
 }
 
-select_repositories
-
-function delete_repositories() {
+delete_repositories() {
     for repo in "${REPOSITORIES[@]}"; do
         echo "Deleting repository: $repo"
         gh repo delete "$repo" --yes
@@ -56,7 +42,7 @@ function delete_repositories() {
     done
 }
 
-function change_visibility() {
+change_visibility() {
     local visibility="$1"
     for repo in "${REPOSITORIES[@]}"; do
         echo "Changing visibility of repository: $repo"
@@ -67,25 +53,31 @@ function change_visibility() {
 }
 
 echo "Choose an action:"
-echo "1. Delete repositories"
-echo "2. Make repositories public"
-echo "3. Make repositories private"
-read -p "Enter the number of your choice (1, 2, or 3): " choice
-
-case $choice in
-    1)
-        delete_repositories
-        ;;
-    2)
-        change_visibility "public"
-        ;;
-    3)
-        change_visibility "private"
-        ;;
-    *)
-        echo "Invalid choice. Exiting."
-        exit 1
-        ;;
-esac
+PS3="Enter the number of your choice (1, 2, or 3): "
+options=("Delete repositories" "Make repositories public" "Make repositories private" "Quit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Delete repositories")
+            select_repositories
+            delete_repositories
+            break
+            ;;
+        "Make repositories public")
+            select_repositories
+            change_visibility "public"
+            break
+            ;;
+        "Make repositories private")
+            select_repositories
+            change_visibility "private"
+            break
+            ;;
+        "Quit")
+            exit 0
+            ;;
+        *) echo "Invalid option. Try again.";;
+    esac
+done
 
 echo "Finished managing repositories."
