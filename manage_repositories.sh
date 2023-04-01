@@ -58,10 +58,10 @@ case $choice in
         delete_repositories
         ;;
     2)
-        change_visibility "--public"
+        change_visibility "public"
         ;;
     3)
-        change_visibility "--private"
+        change_visibility "private"
         ;;
     *)
         echo "Invalid choice. Exiting."
