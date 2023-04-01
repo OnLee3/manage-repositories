@@ -8,15 +8,28 @@ function select_repositories() {
     local selected_repositories=()
     local index=1
 
+    declare -A visibility_map=(
+        ["public"]="public "
+        ["private"]="private"
+    )
+
+    sorted_repositories=($(printf '%s\n' "${REPOSITORIES[@]}" | sort -k 2))
+    
     echo "Select repositories to manage (Enter the numbers, separated by spaces):"
-    for repo in "${REPOSITORIES[@]}"; do
-        echo "[$index] $repo"
+    for repo in "${sorted_repositories[@]}"; do
+        is_private="$(gh repo view --json isPrivate "$repo" | jq -r '.isPrivate')"
+        if [[ $is_private == "true" ]]; then
+            visibility_string="private"
+        else
+            visibility_string="public"
+        fi
+        echo "[$index] $visibility_string $repo"
         index=$((index + 1))
     done
 
     read -ra selected_indexes
     for index in "${selected_indexes[@]}"; do
-        selected_repositories+=("${REPOSITORIES[$((index - 1))]}")
+        selected_repositories+=("${sorted_repositories[$((index - 1))]}")
     done
 
     echo "Selected repositories:"
