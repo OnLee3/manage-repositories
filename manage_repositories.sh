@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function get_repositories() {
-    gh repo list --limit 100 --json nameWithOwner,isPrivate | jq -r '.[] | "\(.nameWithOwner) \(.isPrivate)"'
+    gh repo list --limit 100 --json nameWithOwner,isPrivate | jq -r '.[] | "\(.nameWithOwner) \(.isPrivate)"' | sort -k2,2
 }
 
 REPOSITORIES=()
